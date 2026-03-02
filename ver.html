@@ -11,7 +11,6 @@
     html, body { margin: 0; padding: 0; }
     #map { height: 100vh; width: 100%; }
 
-    /* Panel inferior */
     .panel-info {
       position: absolute;
       bottom: 15px;
@@ -25,7 +24,6 @@
       font-size: 14px;
     }
 
-    /* Leyenda */
     .leyenda {
       position: absolute;
       top: 15px;
@@ -73,14 +71,13 @@
 
 <div id="map"></div>
 
-<!-- Panel información -->
 <div class="panel-info">
   <strong>📍 Procesión en vivo</strong><br>
+  Estado: <strong><span id="estadoTexto">Cargando...</span></strong><br>
   Última actualización: <span id="hora">--</span><br>
   Avance del recorrido: <strong><span id="avance">0%</span></strong>
 </div>
 
-<!-- Leyenda -->
 <div class="leyenda">
   <strong>Recorrido</strong>
   <div class="item-leyenda">
@@ -106,7 +103,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 // ================= ICONO =================
 const iconoProcesion = L.icon({
-  iconUrl: 'anda.png', // asegúrate que exista en tu repo
+  iconUrl: 'anda.png',
   iconSize: [36, 36],
   iconAnchor: [18, 36]
 });
@@ -135,16 +132,10 @@ const rutaRegreso = [
 
 const rutaCompleta = rutaIda.concat(rutaRegreso);
 
-// ================= DIBUJAR RUTAS =================
+// Dibujar rutas
 const lineaIda = L.polyline(rutaIda, { color: "blue", weight: 3 }).addTo(map);
+const lineaRegreso = L.polyline(rutaRegreso, { color: "red", weight: 3, dashArray: "8,6" }).addTo(map);
 
-const lineaRegreso = L.polyline(rutaRegreso, {
-  color: "red",
-  weight: 3,
-  dashArray: "8,6"
-}).addTo(map);
-
-// Flechas dirección
 L.polylineDecorator(lineaIda, {
   patterns: [{ offset: 25, repeat: 60, symbol: L.Symbol.arrowHead({ pixelSize: 8, pathOptions: { color: 'blue' }}) }]
 }).addTo(map);
@@ -153,26 +144,20 @@ L.polylineDecorator(lineaRegreso, {
   patterns: [{ offset: 25, repeat: 60, symbol: L.Symbol.arrowHead({ pixelSize: 8, pathOptions: { color: 'red' }}) }]
 }).addTo(map);
 
-// Ajustar vista
 map.fitBounds(L.featureGroup([lineaIda, lineaRegreso]).getBounds());
 
-// ================= MARCADORES =================
 L.marker(rutaIda[0]).addTo(map).bindPopup("Salida");
 L.marker(rutaRegreso[rutaRegreso.length - 1]).addTo(map).bindPopup("Ingreso");
 
-// ================= MARCADOR TIEMPO REAL =================
-let markerTiempoReal = L.marker([14.3009, -90.7875], { icon: iconoProcesion }).addTo(map);
+let markerTiempoReal = L.marker(rutaIda[0], { icon: iconoProcesion }).addTo(map);
 
 // ================= FUNCIONES =================
-
-// Distancia simple
 function distancia(a, b) {
   const dx = a[0] - b[0];
   const dy = a[1] - b[1];
   return Math.sqrt(dx*dx + dy*dy);
 }
 
-// Calcular avance
 function calcularAvance(pos) {
   let total = 0;
   let recorrido = 0;
@@ -199,14 +184,39 @@ async function actualizarUbicacion() {
     const res = await fetch(API_URL);
     const data = await res.json();
 
-    if (data.lat && data.lng) {
+    const estadoSpan = document.getElementById("estadoTexto");
+
+    if (!data.procesionActiva) {
+      estadoSpan.innerText = "No hay procesión activa";
+      document.getElementById("avance").innerText = "--";
+      document.getElementById("hora").innerText = "--";
+      return;
+    }
+
+    if (data.estado === "activa") {
+      estadoSpan.innerText = "Activada (Aún no inicia)";
+      document.getElementById("avance").innerText = "0%";
+      document.getElementById("hora").innerText = "--";
+      return;
+    }
+
+    if (data.estado === "finalizada") {
+      estadoSpan.innerText = "Recorrido finalizado";
+      return;
+    }
+
+    if (data.estado === "en_recorrido" && data.lat && data.lng) {
+      estadoSpan.innerText = "En recorrido";
+
       const pos = [data.lat, data.lng];
       markerTiempoReal.setLatLng(pos);
+
       actualizarHora();
 
       const avance = calcularAvance(pos);
       document.getElementById("avance").innerText = avance + "%";
     }
+
   } catch (error) {
     console.error("Error:", error);
   }
@@ -214,7 +224,6 @@ async function actualizarUbicacion() {
 
 setInterval(actualizarUbicacion, 5000);
 actualizarUbicacion();
-
 </script>
 
 </body>
