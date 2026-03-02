@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ver recorrido</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+  <style>
+    html, body { margin: 0; padding: 0; }
+    #map { height: 100vh; width: 100%; }
+  </style>
+</head>
+
+<body>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbyzEXUcJIlVNT1OKmlF_BeothFwXnR4HZ5kSPW9Bwh7htqVtEz8zIgDcnjYLh1D8mvnRA/exec";
+
+const map = L.map('map').setView([14.3050, -90.7850], 15);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+let marker = L.marker([14.3050, -90.7850]).addTo(map);
+
+async function actualizarUbicacion() {
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+
+    if (data.lat && data.lng) {
+      marker.setLatLng([data.lat, data.lng]);
+      map.panTo([data.lat, data.lng]);
+    }
+  } catch (error) {
+    console.error("Error:", error);
+  }
+}
+
+setInterval(actualizarUbicacion, 5000);
+actualizarUbicacion();
+</script>
+
+</body>
+</html>
