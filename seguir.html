@@ -23,24 +23,9 @@
       box-shadow: 0 0 25px rgba(0,0,0,0.4);
     }
 
-    .btn-activar {
-      background-color: #6f42c1;
-      color: white;
-    }
-
-    .btn-comenzar {
-      background-color: #198754;
-      color: white;
-    }
-
-    .btn-finalizar {
-      background-color: #dc3545;
-      color: white;
-    }
-
-    select, button {
-      border-radius: 10px !important;
-    }
+    .btn-activar { background-color: #6f42c1; color: white; }
+    .btn-comenzar { background-color: #198754; color: white; }
+    .btn-finalizar { background-color: #dc3545; color: white; }
 
     .estado-box {
       background: #2a0d38;
@@ -57,38 +42,53 @@
 <div class="container">
   <div class="card-panel mx-auto" style="max-width: 500px;">
 
-    <h3 class="text-center mb-4">Panel de Control Procesional</h3>
+    <!-- LOGIN -->
+    <div id="loginBox">
+      <h3 class="text-center mb-4">🔐 Acceso de Encargado</h3>
 
-    <!-- Selector -->
-    <label class="mb-2">Seleccionar procesión</label>
-    <select id="procesionSelect" class="form-select mb-3">
-      <option value="jesus-nazareno">Jesús Nazareno</option>
-      <option value="virgen-dolores">Virgen de Dolores</option>
-      <option value="senor-sepultado">Señor Sepultado</option>
-    </select>
+      <input type="text" id="usuario" class="form-control mb-2" placeholder="Usuario">
+      <input type="password" id="password" class="form-control mb-3" placeholder="Contraseña">
 
-    <!-- Botones -->
-    <div class="d-grid gap-2">
-
-      <button class="btn btn-activar" onclick="activarProcesion()">
-        🟣 Activar procesión
-      </button>
-
-      <button class="btn btn-comenzar" onclick="comenzarRecorrido()">
-        🟢 Comenzar recorrido
-      </button>
-
-      <button class="btn btn-finalizar" onclick="finalizarRecorrido()">
-        🔴 Finalizar recorrido
-      </button>
-
+      <button class="btn btn-warning w-100" onclick="login()">Ingresar</button>
+      <p id="error" class="text-danger text-center mt-2"></p>
     </div>
 
-    <!-- Estado -->
-    <div class="estado-box text-center mt-3">
-      <strong>Estado actual:</strong>
-      <div id="estadoActual">Cargando...</div>
-      <div id="gpsInfo" class="mt-2"></div>
+    <!-- PANEL -->
+    <div id="panel" style="display:none;">
+
+      <h4 class="text-center mb-3">Panel de Control Procesional</h4>
+
+      <label class="mb-2">Seleccionar procesión</label>
+      <select id="procesionSelect" class="form-select mb-3">
+        <option value="jesus-nazareno">Jesús Nazareno</option>
+        <option value="virgen-dolores">Virgen de Dolores</option>
+        <option value="senor-sepultado">Señor Sepultado</option>
+      </select>
+
+      <div class="d-grid gap-2">
+        <button class="btn btn-activar" onclick="activarProcesion()">
+          🟣 Activar procesión
+        </button>
+
+        <button class="btn btn-comenzar" onclick="comenzarRecorrido()">
+          🟢 Comenzar recorrido
+        </button>
+
+        <button class="btn btn-finalizar" onclick="finalizarRecorrido()">
+          🔴 Finalizar recorrido
+        </button>
+      </div>
+
+      <div class="estado-box text-center mt-3">
+        <strong>Estado actual:</strong>
+        <div id="estadoActual">Cargando...</div>
+        <div id="gpsInfo" class="mt-2"></div>
+      </div>
+
+      <button class="btn btn-secondary w-100 mt-3" onclick="cerrarSesion()">
+        Cerrar sesión
+      </button>
+
     </div>
 
   </div>
@@ -97,8 +97,32 @@
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbwlnX9zhSakddrndVBurrMOQkbGFvQyDHHslDP6ZSn3kSI-YA7mEnfvbNTL_JsMPBtaYw/exec";
 
-// ================== FUNCIONES ==================
+const USER = "admin";
+const PASS = "procesion2026";
 
+let gpsActivo = false;
+
+// ===== LOGIN =====
+function login() {
+  const u = document.getElementById("usuario").value;
+  const p = document.getElementById("password").value;
+
+  if (u === USER && p === PASS) {
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("panel").style.display = "block";
+    cargarEstado();
+  } else {
+    document.getElementById("error").innerText = "Credenciales incorrectas";
+  }
+}
+
+function cerrarSesion() {
+  gpsActivo = false;
+  document.getElementById("panel").style.display = "none";
+  document.getElementById("loginBox").style.display = "block";
+}
+
+// ===== CONTROL =====
 async function activarProcesion() {
   const procesion = document.getElementById("procesionSelect").value;
 
@@ -116,11 +140,10 @@ async function activarProcesion() {
 async function comenzarRecorrido() {
   await fetch(API_URL, {
     method: "POST",
-    body: JSON.stringify({
-      accion: "comenzar"
-    })
+    body: JSON.stringify({ accion: "comenzar" })
   });
 
+  gpsActivo = true;
   iniciarGPS();
   cargarEstado();
 }
@@ -128,14 +151,14 @@ async function comenzarRecorrido() {
 async function finalizarRecorrido() {
   await fetch(API_URL, {
     method: "POST",
-    body: JSON.stringify({
-      accion: "finalizar"
-    })
+    body: JSON.stringify({ accion: "finalizar" })
   });
 
+  gpsActivo = false;
   cargarEstado();
 }
 
+// ===== ESTADO =====
 async function cargarEstado() {
   const res = await fetch(API_URL);
   const data = await res.json();
@@ -144,6 +167,7 @@ async function cargarEstado() {
     `Procesión: ${data.procesionActiva || "Ninguna"} | Estado: ${data.estado}`;
 }
 
+// ===== GPS =====
 function iniciarGPS() {
   if (navigator.geolocation) {
     navigator.geolocation.watchPosition(enviarUbicacion);
@@ -151,6 +175,8 @@ function iniciarGPS() {
 }
 
 async function enviarUbicacion(pos) {
+  if (!gpsActivo) return;
+
   const lat = pos.coords.latitude;
   const lng = pos.coords.longitude;
 
@@ -166,9 +192,6 @@ async function enviarUbicacion(pos) {
     })
   });
 }
-
-// Cargar estado al abrir
-cargarEstado();
 </script>
 
 </body>
