@@ -50,7 +50,14 @@ function login() {
 // Obtener ubicación en tiempo real
 function iniciarGPS() {
   if (navigator.geolocation) {
-    navigator.geolocation.watchPosition(enviarUbicacion);
+    navigator.geolocation.watchPosition(
+  enviarUbicacion,
+  (error) => {
+    document.getElementById("estado").innerText =
+      "Error GPS: permite ubicación y usa HTTPS.";
+  },
+  { enableHighAccuracy: true }
+);
   } else {
     alert("GPS no soportado");
   }
