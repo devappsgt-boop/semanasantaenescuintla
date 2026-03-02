@@ -56,6 +56,8 @@ function iniciarGPS() {
   }
 }
 
+const API_URL = "https://script.google.com/macros/s/AKfycbyzEXUcJIlVNT1OKmlF_BeothFwXnR4HZ5kSPW9Bwh7htqVtEz8zIgDcnjYLh1D8mvnRA/exec";
+
 function enviarUbicacion(pos) {
   const lat = pos.coords.latitude;
   const lng = pos.coords.longitude;
@@ -63,7 +65,14 @@ function enviarUbicacion(pos) {
   document.getElementById("estado").innerText =
     `Lat: ${lat.toFixed(5)} | Lng: ${lng.toFixed(5)}`;
 
-  // AQUÍ enviaremos a Apps Script (lo haremos en el siguiente paso)
+  fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      lat: lat,
+      lng: lng,
+      user: "admin"
+    })
+  });
 }
 </script>
 
