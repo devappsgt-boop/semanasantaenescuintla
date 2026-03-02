@@ -5,14 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ver recorrido</title>
 
-  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
   <style>
     html, body { margin: 0; padding: 0; }
     #map { height: 100vh; width: 100%; }
 
-    /* Panel flotante */
     .panel-info {
       position: absolute;
       bottom: 15px;
@@ -24,6 +22,30 @@
       font-family: Arial, sans-serif;
       z-index: 1000;
     }
+
+    .leyenda {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: white;
+      padding: 10px 14px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      font-family: Arial, sans-serif;
+      z-index: 1000;
+    }
+
+    .linea {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+
+    .color-box {
+      width: 25px;
+      height: 5px;
+      margin-right: 8px;
+    }
   </style>
 </head>
 
@@ -31,19 +53,32 @@
 
 <div id="map"></div>
 
+<!-- Panel hora -->
 <div class="panel-info">
   <strong>📍 Procesión en vivo</strong><br>
   Última actualización:<br>
   <span id="hora">Esperando datos...</span>
 </div>
 
+<!-- Leyenda -->
+<div class="leyenda">
+  <strong>Recorrido</strong>
+  <div class="linea">
+    <div class="color-box" style="background: blue;"></div> Ida
+  </div>
+  <div class="linea">
+    <div class="color-box" style="background: red;"></div> Regreso
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-polylinedecorator/dist/leaflet.polylineDecorator.js"></script>
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbyzEXUcJIlVNT1OKmlF_BeothFwXnR4HZ5kSPW9Bwh7htqVtEz8zIgDcnjYLh1D8mvnRA/exec";
 
 // =========================
-// 🗺️ MAPA
+// MAPA
 // =========================
 const map = L.map('map').setView([14.3009, -90.7875], 16);
 
@@ -52,17 +87,16 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 // =========================
-// 🖼️ ICONO PERSONALIZADO
+// ICONO PERSONALIZADO
 // =========================
 const iconoProcesion = L.icon({
-  iconUrl: 'anda.png', // 👈 cambia el nombre si usas otro
+  iconUrl: 'anda.png',
   iconSize: [40, 40],
   iconAnchor: [20, 40],
-  popupAnchor: [0, -40]
 });
 
 // =========================
-// 🔵 RUTA IDA
+// RUTAS
 // =========================
 const rutaIda = [
   [14.30121528896382, -90.78618065786368],
@@ -77,9 +111,6 @@ const rutaIda = [
   [14.2997012476179, -90.79047343938484]
 ];
 
-// =========================
-// 🔴 RUTA REGRESO
-// =========================
 const rutaRegreso = [
   [14.299709186821463, -90.79046267127316],
   [14.299177746216476, -90.78848461839965],
@@ -88,7 +119,7 @@ const rutaRegreso = [
   [14.301243798272095, -90.78622745437481]
 ];
 
-// Dibujar rutas
+// Líneas
 const lineaIda = L.polyline(rutaIda, { color: "blue", weight: 5 }).addTo(map);
 const lineaRegreso = L.polyline(rutaRegreso, {
   color: "red",
@@ -96,7 +127,20 @@ const lineaRegreso = L.polyline(rutaRegreso, {
   dashArray: "8,6"
 }).addTo(map);
 
-// Ajustar mapa
+// Flechas dirección
+L.polylineDecorator(lineaIda, {
+  patterns: [
+    { offset: 25, repeat: 50, symbol: L.Symbol.arrowHead({ pixelSize: 10, pathOptions: { color: 'blue' }}) }
+  ]
+}).addTo(map);
+
+L.polylineDecorator(lineaRegreso, {
+  patterns: [
+    { offset: 25, repeat: 50, symbol: L.Symbol.arrowHead({ pixelSize: 10, pathOptions: { color: 'red' }}) }
+  ]
+}).addTo(map);
+
+// Ajustar vista
 const grupoRutas = L.featureGroup([lineaIda, lineaRegreso]);
 map.fitBounds(grupoRutas.getBounds());
 
@@ -105,16 +149,15 @@ L.marker(rutaIda[0]).addTo(map).bindPopup("Salida");
 L.marker(rutaRegreso[rutaRegreso.length - 1]).addTo(map).bindPopup("Ingreso");
 
 // =========================
-// 📍 UBICACIÓN EN TIEMPO REAL
+// UBICACIÓN EN TIEMPO REAL
 // =========================
 let markerTiempoReal = L.marker([14.3009, -90.7875], { icon: iconoProcesion })
   .addTo(map)
   .bindPopup("Procesión en vivo");
 
 function actualizarHora() {
-  const ahora = new Date();
   document.getElementById("hora").innerText =
-    ahora.toLocaleTimeString();
+    new Date().toLocaleTimeString();
 }
 
 async function actualizarUbicacion() {
@@ -127,14 +170,12 @@ async function actualizarUbicacion() {
       actualizarHora();
     }
   } catch (error) {
-    console.error("Error obteniendo ubicación:", error);
+    console.error("Error:", error);
   }
 }
 
-// Actualizar cada 5 segundos
 setInterval(actualizarUbicacion, 5000);
 actualizarUbicacion();
-
 </script>
 
 </body>
