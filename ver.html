@@ -16,8 +16,8 @@
       bottom: 15px;
       left: 15px;
       background: white;
-      padding: 10px 14px;
-      border-radius: 10px;
+      padding: 12px 16px;
+      border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       font-family: Arial, sans-serif;
       z-index: 1000;
@@ -35,15 +35,9 @@
       z-index: 1000;
     }
 
-    .linea {
-      display: flex;
-      align-items: center;
-      margin-bottom: 5px;
-    }
-
     .color-box {
       width: 25px;
-      height: 5px;
+      height: 4px;
       margin-right: 8px;
     }
   </style>
@@ -53,22 +47,18 @@
 
 <div id="map"></div>
 
-<!-- Panel hora -->
+<!-- Panel -->
 <div class="panel-info">
   <strong>📍 Procesión en vivo</strong><br>
-  Última actualización:<br>
-  <span id="hora">Esperando datos...</span>
+  Última actualización: <span id="hora">--</span><br>
+  Avance del recorrido: <strong><span id="avance">0%</span></strong>
 </div>
 
 <!-- Leyenda -->
 <div class="leyenda">
-  <strong>Recorrido</strong>
-  <div class="linea">
-    <div class="color-box" style="background: blue;"></div> Ida
-  </div>
-  <div class="linea">
-    <div class="color-box" style="background: red;"></div> Regreso
-  </div>
+  <strong>Recorrido</strong><br>
+  <div><span class="color-box" style="background:blue;"></span> Ida</div>
+  <div><span class="color-box" style="background:red;"></span> Regreso</div>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -77,27 +67,21 @@
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbyzEXUcJIlVNT1OKmlF_BeothFwXnR4HZ5kSPW9Bwh7htqVtEz8zIgDcnjYLh1D8mvnRA/exec";
 
-// =========================
-// MAPA
-// =========================
+// ================= MAPA =================
 const map = L.map('map').setView([14.3009, -90.7875], 16);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap contributors'
 }).addTo(map);
 
-// =========================
-// ICONO PERSONALIZADO
-// =========================
+// ================= ICONO =================
 const iconoProcesion = L.icon({
   iconUrl: 'anda.png',
-  iconSize: [40, 40],
-  iconAnchor: [20, 40],
+  iconSize: [36, 36],
+  iconAnchor: [18, 36]
 });
 
-// =========================
-// RUTAS
-// =========================
+// ================= RUTAS =================
 const rutaIda = [
   [14.30121528896382, -90.78618065786368],
   [14.300663563221848, -90.7862548083143],
@@ -119,41 +103,55 @@ const rutaRegreso = [
   [14.301243798272095, -90.78622745437481]
 ];
 
-// Líneas
-const lineaIda = L.polyline(rutaIda, { color: "blue", weight: 5 }).addTo(map);
+const rutaCompleta = rutaIda.concat(rutaRegreso);
+
+// ================= DIBUJAR =================
+const lineaIda = L.polyline(rutaIda, { color: "blue", weight: 3 }).addTo(map);
 const lineaRegreso = L.polyline(rutaRegreso, {
   color: "red",
-  weight: 5,
+  weight: 3,
   dashArray: "8,6"
 }).addTo(map);
 
-// Flechas dirección
+// Flechas
 L.polylineDecorator(lineaIda, {
-  patterns: [
-    { offset: 25, repeat: 50, symbol: L.Symbol.arrowHead({ pixelSize: 10, pathOptions: { color: 'blue' }}) }
-  ]
+  patterns: [{ offset: 25, repeat: 60, symbol: L.Symbol.arrowHead({ pixelSize: 8, pathOptions: { color: 'blue' }}) }]
 }).addTo(map);
 
 L.polylineDecorator(lineaRegreso, {
-  patterns: [
-    { offset: 25, repeat: 50, symbol: L.Symbol.arrowHead({ pixelSize: 10, pathOptions: { color: 'red' }}) }
-  ]
+  patterns: [{ offset: 25, repeat: 60, symbol: L.Symbol.arrowHead({ pixelSize: 8, pathOptions: { color: 'red' }}) }]
 }).addTo(map);
 
-// Ajustar vista
-const grupoRutas = L.featureGroup([lineaIda, lineaRegreso]);
-map.fitBounds(grupoRutas.getBounds());
+map.fitBounds(L.featureGroup([lineaIda, lineaRegreso]).getBounds());
 
-// Marcadores
-L.marker(rutaIda[0]).addTo(map).bindPopup("Salida");
-L.marker(rutaRegreso[rutaRegreso.length - 1]).addTo(map).bindPopup("Ingreso");
+// ================= MARCADOR TIEMPO REAL =================
+let markerTiempoReal = L.marker([14.3009, -90.7875], { icon: iconoProcesion }).addTo(map);
 
-// =========================
-// UBICACIÓN EN TIEMPO REAL
-// =========================
-let markerTiempoReal = L.marker([14.3009, -90.7875], { icon: iconoProcesion })
-  .addTo(map)
-  .bindPopup("Procesión en vivo");
+// ================= FUNCIONES =================
+
+// Distancia entre dos puntos
+function distancia(a, b) {
+  const dx = a[0] - b[0];
+  const dy = a[1] - b[1];
+  return Math.sqrt(dx*dx + dy*dy);
+}
+
+// Calcular porcentaje recorrido
+function calcularAvance(pos) {
+  let total = 0;
+  let recorrido = 0;
+
+  for (let i = 0; i < rutaCompleta.length - 1; i++) {
+    const seg = distancia(rutaCompleta[i], rutaCompleta[i+1]);
+    total += seg;
+
+    if (distancia(pos, rutaCompleta[i+1]) < 0.0005) {
+      recorrido += seg;
+    }
+  }
+
+  return Math.min(100, Math.round((recorrido / total) * 100));
+}
 
 function actualizarHora() {
   document.getElementById("hora").innerText =
@@ -166,8 +164,12 @@ async function actualizarUbicacion() {
     const data = await res.json();
 
     if (data.lat && data.lng) {
-      markerTiempoReal.setLatLng([data.lat, data.lng]);
+      const pos = [data.lat, data.lng];
+      markerTiempoReal.setLatLng(pos);
       actualizarHora();
+
+      const avance = calcularAvance(pos);
+      document.getElementById("avance").innerText = avance + "%";
     }
   } catch (error) {
     console.error("Error:", error);
@@ -176,6 +178,7 @@ async function actualizarUbicacion() {
 
 setInterval(actualizarUbicacion, 5000);
 actualizarUbicacion();
+
 </script>
 
 </body>
