@@ -4,30 +4,65 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Seguir Procesión</title>
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      background: linear-gradient(rgba(40,0,60,0.9), rgba(40,0,60,0.9)),
+                  url('https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=1400&q=60');
+      background-size: cover;
+      background-position: center;
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+    }
+
+    .card-login {
+      background: rgba(0,0,0,0.65);
+      border: 1px solid rgba(255,215,0,0.4);
+      border-radius: 16px;
+      padding: 25px;
+      backdrop-filter: blur(6px);
+    }
+
+    .btn-santa {
+      background-color: #5a2a82;
+      color: white;
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .btn-santa:hover {
+      background-color: #4a216d;
+    }
+  </style>
 </head>
 
-<body class="bg-light">
+<body>
 
-<div class="container mt-5">
+<div class="container">
+  <div class="card-login mx-auto" style="max-width: 400px;">
 
-  <!-- LOGIN -->
-  <div id="loginBox">
-    <h3>Acceso autorizado</h3>
+    <!-- LOGIN -->
+    <div id="loginBox">
+      <h3 class="text-center mb-3">Acceso autorizado</h3>
 
-    <input type="text" id="usuario" class="form-control mb-2" placeholder="Usuario">
-    <input type="password" id="password" class="form-control mb-3" placeholder="Contraseña">
+      <input type="text" id="usuario" class="form-control mb-2" placeholder="Usuario">
+      <input type="password" id="password" class="form-control mb-3" placeholder="Contraseña">
 
-    <button class="btn btn-primary w-100" onclick="login()">Ingresar</button>
-    <p id="error" class="text-danger mt-2"></p>
+      <button class="btn btn-santa w-100" onclick="login()">Ingresar</button>
+      <p id="error" class="text-warning mt-2 text-center"></p>
+    </div>
+
+    <!-- PANEL GPS -->
+    <div id="panel" style="display:none;" class="text-center">
+      <h4>📡 Enviando ubicación</h4>
+      <p id="estado">Esperando GPS...</p>
+    </div>
+
   </div>
-
-  <!-- PANEL DE ENVÍO -->
-  <div id="panel" style="display:none;">
-    <h3>Enviando ubicación...</h3>
-    <p id="estado">Esperando GPS...</p>
-  </div>
-
 </div>
 
 <script>
@@ -47,17 +82,9 @@ function login() {
   }
 }
 
-// Obtener ubicación en tiempo real
 function iniciarGPS() {
   if (navigator.geolocation) {
-    navigator.geolocation.watchPosition(
-  enviarUbicacion,
-  (error) => {
-    document.getElementById("estado").innerText =
-      "Error GPS: permite ubicación y usa HTTPS.";
-  },
-  { enableHighAccuracy: true }
-);
+    navigator.geolocation.watchPosition(enviarUbicacion);
   } else {
     alert("GPS no soportado");
   }
