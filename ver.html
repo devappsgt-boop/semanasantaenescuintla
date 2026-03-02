@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ver recorrido</title>
 
+  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
   <style>
@@ -22,30 +23,83 @@
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbyzEXUcJIlVNT1OKmlF_BeothFwXnR4HZ5kSPW9Bwh7htqVtEz8zIgDcnjYLh1D8mvnRA/exec";
 
-const map = L.map('map').setView([14.3050, -90.7850], 15);
+// =========================
+// 🗺️ CONFIGURAR MAPA
+// =========================
+const map = L.map('map').setView([14.3009, -90.7875], 16);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap contributors'
 }).addTo(map);
 
-let marker = L.marker([14.3050, -90.7850]).addTo(map);
+// =========================
+// 🔵 RUTA DE IDA
+// =========================
+const rutaIda = [
+  [14.30121528896382, -90.78618065786368],
+  [14.300663563221848, -90.7862548083143],
+  [14.300825231833766, -90.78738295443905],
+  [14.299737315942695, -90.78753221551439],
+  [14.298710499776067, -90.78768147309685],
+  [14.298402756590876, -90.78777224434847],
+  [14.298661942161694, -90.78853758293158],
+  [14.298720964580703, -90.78857200995874],
+  [14.299226503748407, -90.79064292612809],
+  [14.2997012476179, -90.79047343938484]
+];
 
+// =========================
+// 🔴 RUTA DE REGRESO
+// =========================
+const rutaRegreso = [
+  [14.299709186821463, -90.79046267127316],
+  [14.299177746216476, -90.78848461839965],
+  [14.300985427064516, -90.7881767699471],
+  [14.300716182723013, -90.78629182738803],
+  [14.301243798272095, -90.78622745437481]
+];
+
+// Dibujar rutas
+const lineaIda = L.polyline(rutaIda, { color: "blue", weight: 5 }).addTo(map);
+const lineaRegreso = L.polyline(rutaRegreso, {
+  color: "red",
+  weight: 5,
+  dashArray: "8,6"
+}).addTo(map);
+
+// Ajustar vista al recorrido
+const grupoRutas = L.featureGroup([lineaIda, lineaRegreso]);
+map.fitBounds(grupoRutas.getBounds());
+
+// Marcadores
+L.marker(rutaIda[0]).addTo(map).bindPopup("Salida");
+L.marker(rutaRegreso[rutaRegreso.length - 1]).addTo(map).bindPopup("Ingreso");
+
+// =========================
+// 📍 UBICACIÓN EN TIEMPO REAL
+// =========================
+let markerTiempoReal = L.marker([14.3009, -90.7875])
+  .addTo(map)
+  .bindPopup("Procesión en vivo");
+
+// Obtener ubicación del Apps Script
 async function actualizarUbicacion() {
   try {
     const res = await fetch(API_URL);
     const data = await res.json();
 
     if (data.lat && data.lng) {
-      marker.setLatLng([data.lat, data.lng]);
-      map.panTo([data.lat, data.lng]);
+      markerTiempoReal.setLatLng([data.lat, data.lng]);
     }
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Error obteniendo ubicación:", error);
   }
 }
 
+// Actualizar cada 5 segundos
 setInterval(actualizarUbicacion, 5000);
 actualizarUbicacion();
+
 </script>
 
 </body>
