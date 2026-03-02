@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Registro de Recorrido</title>
+  <title>Panel de Control - Procesión</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -16,27 +16,34 @@
       align-items: center;
     }
 
-    .card-login {
+    .card-panel {
       background: #3d1450;
       border-radius: 18px;
       padding: 30px;
       box-shadow: 0 0 25px rgba(0,0,0,0.4);
     }
 
-    .btn-santa {
-      background-color: #d4af37;
-      color: black;
-      font-weight: bold;
-      border-radius: 10px;
-      padding: 10px;
+    .btn-activar {
+      background-color: #6f42c1;
+      color: white;
     }
 
-    .btn-santa:hover {
-      background-color: #c19d2f;
+    .btn-comenzar {
+      background-color: #198754;
+      color: white;
     }
 
-    .estado-gps {
-      background-color: #2a0d38;
+    .btn-finalizar {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    select, button {
+      border-radius: 10px !important;
+    }
+
+    .estado-box {
+      background: #2a0d38;
       padding: 15px;
       border-radius: 12px;
       margin-top: 15px;
@@ -48,78 +55,120 @@
 <body>
 
 <div class="container">
-  <div class="card-login mx-auto" style="max-width: 420px;">
+  <div class="card-panel mx-auto" style="max-width: 500px;">
 
-    <!-- LOGIN -->
-    <div id="loginBox">
-      <h3 class="text-center mb-3">🔐 Acceso de Registro</h3>
+    <h3 class="text-center mb-4">Panel de Control Procesional</h3>
 
-      <p class="text-center mb-3" style="font-size: 0.9rem; opacity:0.8;">
-        Uso exclusivo para la persona encargada de enviar la ubicación en tiempo real.
-      </p>
+    <!-- Selector -->
+    <label class="mb-2">Seleccionar procesión</label>
+    <select id="procesionSelect" class="form-select mb-3">
+      <option value="jesus-nazareno">Jesús Nazareno</option>
+      <option value="virgen-dolores">Virgen de Dolores</option>
+      <option value="senor-sepultado">Señor Sepultado</option>
+    </select>
 
-      <input type="text" id="usuario" class="form-control mb-2" placeholder="Usuario">
-      <input type="password" id="password" class="form-control mb-3" placeholder="Contraseña">
+    <!-- Botones -->
+    <div class="d-grid gap-2">
 
-      <button class="btn btn-santa w-100" onclick="login()">Ingresar</button>
-      <p id="error" class="text-warning mt-2 text-center"></p>
+      <button class="btn btn-activar" onclick="activarProcesion()">
+        🟣 Activar procesión
+      </button>
+
+      <button class="btn btn-comenzar" onclick="comenzarRecorrido()">
+        🟢 Comenzar recorrido
+      </button>
+
+      <button class="btn btn-finalizar" onclick="finalizarRecorrido()">
+        🔴 Finalizar recorrido
+      </button>
+
     </div>
 
-    <!-- PANEL GPS -->
-    <div id="panel" style="display:none;">
-      <h4 class="text-center">📡 Enviando ubicación en tiempo real</h4>
-
-      <div class="estado-gps text-center">
-        <p id="estado">Esperando señal GPS...</p>
-      </div>
+    <!-- Estado -->
+    <div class="estado-box text-center mt-3">
+      <strong>Estado actual:</strong>
+      <div id="estadoActual">Cargando...</div>
+      <div id="gpsInfo" class="mt-2"></div>
     </div>
 
   </div>
 </div>
 
 <script>
-const USER = "admin";
-const PASS = "procesion2026";
+const API_URL = "https://script.google.com/macros/s/AKfycbwlnX9zhSakddrndVBurrMOQkbGFvQyDHHslDP6ZSn3kSI-YA7mEnfvbNTL_JsMPBtaYw/exec";
 
-function login() {
-  const u = document.getElementById("usuario").value;
-  const p = document.getElementById("password").value;
+// ================== FUNCIONES ==================
 
-  if (u === USER && p === PASS) {
-    document.getElementById("loginBox").style.display = "none";
-    document.getElementById("panel").style.display = "block";
-    iniciarGPS();
-  } else {
-    document.getElementById("error").innerText = "Credenciales incorrectas";
-  }
+async function activarProcesion() {
+  const procesion = document.getElementById("procesionSelect").value;
+
+  await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      accion: "activar",
+      procesion: procesion
+    })
+  });
+
+  cargarEstado();
+}
+
+async function comenzarRecorrido() {
+  await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      accion: "comenzar"
+    })
+  });
+
+  iniciarGPS();
+  cargarEstado();
+}
+
+async function finalizarRecorrido() {
+  await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({
+      accion: "finalizar"
+    })
+  });
+
+  cargarEstado();
+}
+
+async function cargarEstado() {
+  const res = await fetch(API_URL);
+  const data = await res.json();
+
+  document.getElementById("estadoActual").innerText =
+    `Procesión: ${data.procesionActiva || "Ninguna"} | Estado: ${data.estado}`;
 }
 
 function iniciarGPS() {
   if (navigator.geolocation) {
     navigator.geolocation.watchPosition(enviarUbicacion);
-  } else {
-    alert("GPS no soportado");
   }
 }
 
-const API_URL = "https://script.google.com/macros/s/AKfycbyzEXUcJIlVNT1OKmlF_BeothFwXnR4HZ5kSPW9Bwh7htqVtEz8zIgDcnjYLh1D8mvnRA/exec";
-
-function enviarUbicacion(pos) {
+async function enviarUbicacion(pos) {
   const lat = pos.coords.latitude;
   const lng = pos.coords.longitude;
 
-  document.getElementById("estado").innerText =
+  document.getElementById("gpsInfo").innerText =
     `Lat: ${lat.toFixed(5)} | Lng: ${lng.toFixed(5)}`;
 
-  fetch(API_URL, {
+  await fetch(API_URL, {
     method: "POST",
     body: JSON.stringify({
+      accion: "ubicacion",
       lat: lat,
-      lng: lng,
-      user: "admin"
+      lng: lng
     })
   });
 }
+
+// Cargar estado al abrir
+cargarEstado();
 </script>
 
 </body>
