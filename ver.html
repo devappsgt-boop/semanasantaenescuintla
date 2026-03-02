@@ -11,6 +11,7 @@
     html, body { margin: 0; padding: 0; }
     #map { height: 100vh; width: 100%; }
 
+    /* Panel inferior */
     .panel-info {
       position: absolute;
       bottom: 15px;
@@ -21,24 +22,49 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       font-family: Arial, sans-serif;
       z-index: 1000;
+      font-size: 14px;
     }
 
+    /* Leyenda */
     .leyenda {
       position: absolute;
       top: 15px;
       right: 15px;
       background: white;
-      padding: 10px 14px;
-      border-radius: 10px;
+      padding: 12px 16px;
+      border-radius: 12px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       font-family: Arial, sans-serif;
       z-index: 1000;
+      font-size: 14px;
     }
 
-    .color-box {
-      width: 25px;
+    .item-leyenda {
+      display: flex;
+      align-items: center;
+      margin-top: 6px;
+    }
+
+    .linea-ida {
+      width: 30px;
       height: 4px;
+      background: blue;
       margin-right: 8px;
+      border-radius: 2px;
+    }
+
+    .linea-regreso {
+      width: 30px;
+      height: 4px;
+      background: repeating-linear-gradient(
+        to right,
+        red,
+        red 6px,
+        transparent 6px,
+        transparent 12px
+      );
+      margin-right: 8px;
+      border-radius: 2px;
     }
   </style>
 </head>
@@ -47,7 +73,7 @@
 
 <div id="map"></div>
 
-<!-- Panel -->
+<!-- Panel información -->
 <div class="panel-info">
   <strong>📍 Procesión en vivo</strong><br>
   Última actualización: <span id="hora">--</span><br>
@@ -56,9 +82,13 @@
 
 <!-- Leyenda -->
 <div class="leyenda">
-  <strong>Recorrido</strong><br>
-  <div><span class="color-box" style="background:blue;"></span> Ida</div>
-  <div><span class="color-box" style="background:red;"></span> Regreso</div>
+  <strong>Recorrido</strong>
+  <div class="item-leyenda">
+    <span class="linea-ida"></span> Ida
+  </div>
+  <div class="item-leyenda">
+    <span class="linea-regreso"></span> Regreso
+  </div>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -76,7 +106,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 // ================= ICONO =================
 const iconoProcesion = L.icon({
-  iconUrl: 'anda.png',
+  iconUrl: 'anda.png', // asegúrate que exista en tu repo
   iconSize: [36, 36],
   iconAnchor: [18, 36]
 });
@@ -105,15 +135,16 @@ const rutaRegreso = [
 
 const rutaCompleta = rutaIda.concat(rutaRegreso);
 
-// ================= DIBUJAR =================
+// ================= DIBUJAR RUTAS =================
 const lineaIda = L.polyline(rutaIda, { color: "blue", weight: 3 }).addTo(map);
+
 const lineaRegreso = L.polyline(rutaRegreso, {
   color: "red",
   weight: 3,
   dashArray: "8,6"
 }).addTo(map);
 
-// Flechas
+// Flechas dirección
 L.polylineDecorator(lineaIda, {
   patterns: [{ offset: 25, repeat: 60, symbol: L.Symbol.arrowHead({ pixelSize: 8, pathOptions: { color: 'blue' }}) }]
 }).addTo(map);
@@ -122,21 +153,26 @@ L.polylineDecorator(lineaRegreso, {
   patterns: [{ offset: 25, repeat: 60, symbol: L.Symbol.arrowHead({ pixelSize: 8, pathOptions: { color: 'red' }}) }]
 }).addTo(map);
 
+// Ajustar vista
 map.fitBounds(L.featureGroup([lineaIda, lineaRegreso]).getBounds());
+
+// ================= MARCADORES =================
+L.marker(rutaIda[0]).addTo(map).bindPopup("Salida");
+L.marker(rutaRegreso[rutaRegreso.length - 1]).addTo(map).bindPopup("Ingreso");
 
 // ================= MARCADOR TIEMPO REAL =================
 let markerTiempoReal = L.marker([14.3009, -90.7875], { icon: iconoProcesion }).addTo(map);
 
 // ================= FUNCIONES =================
 
-// Distancia entre dos puntos
+// Distancia simple
 function distancia(a, b) {
   const dx = a[0] - b[0];
   const dy = a[1] - b[1];
   return Math.sqrt(dx*dx + dy*dy);
 }
 
-// Calcular porcentaje recorrido
+// Calcular avance
 function calcularAvance(pos) {
   let total = 0;
   let recorrido = 0;
