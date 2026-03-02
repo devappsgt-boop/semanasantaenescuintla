@@ -9,10 +9,7 @@
 
   <style>
     body {
-      background: linear-gradient(rgba(40,0,60,0.85), rgba(40,0,60,0.85)),
-                  url('https://images.unsplash.com/photo-1520975922323-8e3d2b7a3a0a?auto=format&fit=crop&w=1400&q=60');
-      background-size: cover;
-      background-position: center;
+      background-color: #2e0f3a;
       color: white;
       min-height: 100vh;
       display: flex;
@@ -20,11 +17,10 @@
     }
 
     .card-santa {
-      background: rgba(0,0,0,0.6);
-      border: 1px solid rgba(255,215,0,0.4);
-      border-radius: 16px;
-      padding: 30px;
-      backdrop-filter: blur(6px);
+      background: #3d1450;
+      border-radius: 18px;
+      padding: 35px;
+      box-shadow: 0 0 25px rgba(0,0,0,0.4);
     }
 
     .titulo {
@@ -32,29 +28,32 @@
       letter-spacing: 1px;
     }
 
-    .btn-santa {
-      font-size: 1.1rem;
-      padding: 12px;
-      border-radius: 10px;
-    }
-
-    .btn-seguir {
-      background-color: #5a2a82;
-      color: white;
-    }
-
-    .btn-ver {
+    .btn-publico {
       background-color: #d4af37;
       color: black;
       font-weight: bold;
+      border-radius: 10px;
+      padding: 12px;
     }
 
-    .btn-seguir:hover {
+    .btn-publico:hover {
+      background-color: #c19d2f;
+    }
+
+    .btn-interno {
+      background-color: #5a2a82;
+      color: white;
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .btn-interno:hover {
       background-color: #4a216d;
     }
 
-    .btn-ver:hover {
-      background-color: #c19d2f;
+    .nota {
+      font-size: 0.85rem;
+      opacity: 0.8;
     }
   </style>
 </head>
@@ -62,23 +61,39 @@
 <body>
 
 <div class="container text-center">
-  <div class="card-santa mx-auto" style="max-width: 420px;">
-    <h1 class="titulo mb-3">Semana Santa</h1>
+  <div class="card-santa mx-auto" style="max-width: 450px;">
+
+    <h1 class="titulo mb-3">Cuaresma y Semana Santa</h1>
     <h4 class="mb-4">Escuintla 2026</h4>
 
     <p class="mb-4">
-      Sigue el recorrido procesional en tiempo real y acompaña esta tradición con devoción.
+      Sigue en tiempo real el recorrido procesional
     </p>
 
-    <div class="d-grid gap-3">
-      <a href="seguir.html" class="btn btn-santa btn-seguir">
-        📍 Seguir recorrido procesional
-      </a>
+    <div class="d-grid gap-4">
 
-      <a href="ver.html" class="btn btn-santa btn-ver">
-        🗺️ Ver recorrido procesional
-      </a>
+      <!-- BOTÓN PÚBLICO -->
+      <div>
+        <a href="ver.html" class="btn btn-publico w-100">
+          🗺️ Ver recorrido en vivo
+        </a>
+        <div class="nota mt-2">
+          Disponible para todo el público
+        </div>
+      </div>
+
+      <!-- BOTÓN INTERNO -->
+      <div>
+        <a href="seguir.html" class="btn btn-interno w-100">
+          🔐 Iniciar Sesión
+        </a>
+        <div class="nota mt-2">
+          Acceso Restringido
+        </div>
+      </div>
+
     </div>
+
   </div>
 </div>
 
