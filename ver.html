@@ -1,70 +1,29 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ver recorrido</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ver recorrido</title>
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
-  <style>
-    html, body { margin: 0; padding: 0; }
-    #map { height: 100vh; width: 100%; }
+<style>
+html, body { margin: 0; padding: 0; }
+#map { height: 100vh; width: 100%; }
 
-    .panel-info {
-      position: absolute;
-      bottom: 15px;
-      left: 15px;
-      background: white;
-      padding: 12px 16px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      font-family: Arial, sans-serif;
-      z-index: 1000;
-      font-size: 14px;
-    }
-
-    .leyenda {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      background: white;
-      padding: 12px 16px;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      font-family: Arial, sans-serif;
-      z-index: 1000;
-      font-size: 14px;
-    }
-
-    .item-leyenda {
-      display: flex;
-      align-items: center;
-      margin-top: 6px;
-    }
-
-    .linea-ida {
-      width: 30px;
-      height: 4px;
-      background: blue;
-      margin-right: 8px;
-      border-radius: 2px;
-    }
-
-    .linea-regreso {
-      width: 30px;
-      height: 4px;
-      background: repeating-linear-gradient(
-        to right,
-        red,
-        red 6px,
-        transparent 6px,
-        transparent 12px
-      );
-      margin-right: 8px;
-      border-radius: 2px;
-    }
-  </style>
+.panel-info {
+  position: absolute;
+  bottom: 15px;
+  left: 15px;
+  background: white;
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  font-family: Arial;
+  z-index: 1000;
+  font-size: 14px;
+}
+</style>
 </head>
 
 <body>
@@ -72,86 +31,50 @@
 <div id="map"></div>
 
 <div class="panel-info">
-  <strong>📍 Procesión en vivo</strong><br>
-  Estado: <strong><span id="estadoTexto">Cargando...</span></strong><br>
-  Última actualización: <span id="hora">--</span><br>
-  Avance del recorrido: <strong><span id="avance">0%</span></strong>
-</div>
-
-<div class="leyenda">
-  <strong>Recorrido</strong>
-  <div class="item-leyenda">
-    <span class="linea-ida"></span> Ida
-  </div>
-  <div class="item-leyenda">
-    <span class="linea-regreso"></span> Regreso
-  </div>
+<strong id="nombreProcesion">Cargando...</strong><br>
+Estado: <span id="estadoTexto">--</span><br>
+Avance: <strong><span id="avance">0%</span></strong>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet-polylinedecorator/dist/leaflet.polylineDecorator.js"></script>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbyzEXUcJIlVNT1OKmlF_BeothFwXnR4HZ5kSPW9Bwh7htqVtEz8zIgDcnjYLh1D8mvnRA/exec";
+const API_URL = "TU_URL_DEL_SCRIPT_AQUI";
 
-// ================= MAPA =================
-const map = L.map('map').setView([14.3009, -90.7875], 16);
+let map = L.map('map').setView([14.3009, -90.7875], 16);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap contributors'
 }).addTo(map);
 
-// ================= ICONO =================
-const iconoProcesion = L.icon({
-  iconUrl: 'anda.png',
-  iconSize: [36, 36],
-  iconAnchor: [18, 36]
-});
+let rutaActual = null;
+let markerTiempoReal = null;
+let lineaIda = null;
+let lineaRegreso = null;
 
-// ================= RUTAS =================
-const rutaIda = [
-  [14.30121528896382, -90.78618065786368],
-  [14.300663563221848, -90.7862548083143],
-  [14.300825231833766, -90.78738295443905],
-  [14.299737315942695, -90.78753221551439],
-  [14.298710499776067, -90.78768147309685],
-  [14.298402756590876, -90.78777224434847],
-  [14.298661942161694, -90.78853758293158],
-  [14.298720964580703, -90.78857200995874],
-  [14.299226503748407, -90.79064292612809],
-  [14.2997012476179, -90.79047343938484]
-];
+async function cargarRuta(nombreProcesion) {
 
-const rutaRegreso = [
-  [14.299709186821463, -90.79046267127316],
-  [14.299177746216476, -90.78848461839965],
-  [14.300985427064516, -90.7881767699471],
-  [14.300716182723013, -90.78629182738803],
-  [14.301243798272095, -90.78622745437481]
-];
+  if (!nombreProcesion) return;
 
-const rutaCompleta = rutaIda.concat(rutaRegreso);
+  const response = await fetch(`rutas/${nombreProcesion}.json`);
+  const data = await response.json();
 
-// Dibujar rutas
-const lineaIda = L.polyline(rutaIda, { color: "blue", weight: 3 }).addTo(map);
-const lineaRegreso = L.polyline(rutaRegreso, { color: "red", weight: 3, dashArray: "8,6" }).addTo(map);
+  document.getElementById("nombreProcesion").innerText = data.nombre;
 
-L.polylineDecorator(lineaIda, {
-  patterns: [{ offset: 25, repeat: 60, symbol: L.Symbol.arrowHead({ pixelSize: 8, pathOptions: { color: 'blue' }}) }]
-}).addTo(map);
+  if (lineaIda) map.removeLayer(lineaIda);
+  if (lineaRegreso) map.removeLayer(lineaRegreso);
+  if (markerTiempoReal) map.removeLayer(markerTiempoReal);
 
-L.polylineDecorator(lineaRegreso, {
-  patterns: [{ offset: 25, repeat: 60, symbol: L.Symbol.arrowHead({ pixelSize: 8, pathOptions: { color: 'red' }}) }]
-}).addTo(map);
+  lineaIda = L.polyline(data.ida, { color: "blue", weight: 3 }).addTo(map);
+  lineaRegreso = L.polyline(data.regreso, { color: "red", weight: 3, dashArray: "8,6" }).addTo(map);
 
-map.fitBounds(L.featureGroup([lineaIda, lineaRegreso]).getBounds());
+  rutaActual = data.ida.concat(data.regreso);
 
-L.marker(rutaIda[0]).addTo(map).bindPopup("Salida");
-L.marker(rutaRegreso[rutaRegreso.length - 1]).addTo(map).bindPopup("Ingreso");
+  map.fitBounds(L.featureGroup([lineaIda, lineaRegreso]).getBounds());
 
-let markerTiempoReal = L.marker(rutaIda[0], { icon: iconoProcesion }).addTo(map);
+  markerTiempoReal = L.marker(rutaActual[0]).addTo(map);
+}
 
-// ================= FUNCIONES =================
 function distancia(a, b) {
   const dx = a[0] - b[0];
   const dy = a[1] - b[1];
@@ -162,11 +85,11 @@ function calcularAvance(pos) {
   let total = 0;
   let recorrido = 0;
 
-  for (let i = 0; i < rutaCompleta.length - 1; i++) {
-    const seg = distancia(rutaCompleta[i], rutaCompleta[i+1]);
+  for (let i = 0; i < rutaActual.length - 1; i++) {
+    const seg = distancia(rutaActual[i], rutaActual[i+1]);
     total += seg;
 
-    if (distancia(pos, rutaCompleta[i+1]) < 0.0005) {
+    if (distancia(pos, rutaActual[i+1]) < 0.0005) {
       recorrido += seg;
     }
   }
@@ -174,56 +97,31 @@ function calcularAvance(pos) {
   return Math.min(100, Math.round((recorrido / total) * 100));
 }
 
-function actualizarHora() {
-  document.getElementById("hora").innerText =
-    new Date().toLocaleTimeString();
-}
+async function actualizar() {
+  const res = await fetch(API_URL);
+  const data = await res.json();
 
-async function actualizarUbicacion() {
-  try {
-    const res = await fetch(API_URL);
-    const data = await res.json();
+  if (!data.procesionActiva) {
+    document.getElementById("estadoTexto").innerText = "Sin procesión";
+    return;
+  }
 
-    const estadoSpan = document.getElementById("estadoTexto");
+  if (!rutaActual || document.getElementById("nombreProcesion").innerText === "Cargando...") {
+    await cargarRuta(data.procesionActiva);
+  }
 
-    if (!data.procesionActiva) {
-      estadoSpan.innerText = "No hay procesión activa";
-      document.getElementById("avance").innerText = "--";
-      document.getElementById("hora").innerText = "--";
-      return;
-    }
+  document.getElementById("estadoTexto").innerText = data.estado;
 
-    if (data.estado === "activa") {
-      estadoSpan.innerText = "Activada (Aún no inicia)";
-      document.getElementById("avance").innerText = "0%";
-      document.getElementById("hora").innerText = "--";
-      return;
-    }
-
-    if (data.estado === "finalizada") {
-      estadoSpan.innerText = "Recorrido finalizado";
-      return;
-    }
-
-    if (data.estado === "en_recorrido" && data.lat && data.lng) {
-      estadoSpan.innerText = "En recorrido";
-
-      const pos = [data.lat, data.lng];
-      markerTiempoReal.setLatLng(pos);
-
-      actualizarHora();
-
-      const avance = calcularAvance(pos);
-      document.getElementById("avance").innerText = avance + "%";
-    }
-
-  } catch (error) {
-    console.error("Error:", error);
+  if (data.estado === "en_recorrido" && data.lat && data.lng) {
+    const pos = [data.lat, data.lng];
+    markerTiempoReal.setLatLng(pos);
+    const avance = calcularAvance(pos);
+    document.getElementById("avance").innerText = avance + "%";
   }
 }
 
-setInterval(actualizarUbicacion, 5000);
-actualizarUbicacion();
+setInterval(actualizar, 5000);
+actualizar();
 </script>
 
 </body>
