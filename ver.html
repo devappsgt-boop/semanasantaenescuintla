@@ -20,7 +20,10 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
-const map = L.map('map').setView([14.6349, -90.5069], 13); // Guatemala ejemplo
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbyzEXUcJIlVNT1OKmlF_BeothFwXnR4HZ5kSPW9Bwh7htqVtEz8zIgDcnjYLh1D8mvnRA/exec";
+
+const map = L.map('map').setView([14.6349, -90.5069], 15);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap'
@@ -28,7 +31,17 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 let marker = L.marker([14.6349, -90.5069]).addTo(map);
 
-// Aquí luego leeremos datos desde Google Sheets
+// Actualizar cada 5 segundos
+setInterval(async () => {
+  const res = await fetch(API_URL);
+  const data = await res.json();
+
+  if (data.lat) {
+    marker.setLatLng([data.lat, data.lng]);
+    map.panTo([data.lat, data.lng]);
+  }
+}, 5000);
+</script>
 </script>
 
 </body>
