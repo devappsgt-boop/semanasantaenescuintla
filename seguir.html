@@ -3,16 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Seguir Procesión</title>
+  <title>Registro de Recorrido</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
   <style>
     body {
-      background: linear-gradient(rgba(40,0,60,0.9), rgba(40,0,60,0.9)),
-                  url('https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=1400&q=60');
-      background-size: cover;
-      background-position: center;
+      background-color: #2e0f3a;
       color: white;
       min-height: 100vh;
       display: flex;
@@ -20,22 +17,30 @@
     }
 
     .card-login {
-      background: rgba(0,0,0,0.65);
-      border: 1px solid rgba(255,215,0,0.4);
-      border-radius: 16px;
-      padding: 25px;
-      backdrop-filter: blur(6px);
+      background: #3d1450;
+      border-radius: 18px;
+      padding: 30px;
+      box-shadow: 0 0 25px rgba(0,0,0,0.4);
     }
 
     .btn-santa {
-      background-color: #5a2a82;
-      color: white;
+      background-color: #d4af37;
+      color: black;
+      font-weight: bold;
       border-radius: 10px;
       padding: 10px;
     }
 
     .btn-santa:hover {
-      background-color: #4a216d;
+      background-color: #c19d2f;
+    }
+
+    .estado-gps {
+      background-color: #2a0d38;
+      padding: 15px;
+      border-radius: 12px;
+      margin-top: 15px;
+      font-size: 0.9rem;
     }
   </style>
 </head>
@@ -43,11 +48,15 @@
 <body>
 
 <div class="container">
-  <div class="card-login mx-auto" style="max-width: 400px;">
+  <div class="card-login mx-auto" style="max-width: 420px;">
 
     <!-- LOGIN -->
     <div id="loginBox">
-      <h3 class="text-center mb-3">Acceso autorizado</h3>
+      <h3 class="text-center mb-3">🔐 Acceso de Registro</h3>
+
+      <p class="text-center mb-3" style="font-size: 0.9rem; opacity:0.8;">
+        Uso exclusivo para la persona encargada de enviar la ubicación en tiempo real.
+      </p>
 
       <input type="text" id="usuario" class="form-control mb-2" placeholder="Usuario">
       <input type="password" id="password" class="form-control mb-3" placeholder="Contraseña">
@@ -57,9 +66,12 @@
     </div>
 
     <!-- PANEL GPS -->
-    <div id="panel" style="display:none;" class="text-center">
-      <h4>📡 Enviando ubicación</h4>
-      <p id="estado">Esperando GPS...</p>
+    <div id="panel" style="display:none;">
+      <h4 class="text-center">📡 Enviando ubicación en tiempo real</h4>
+
+      <div class="estado-gps text-center">
+        <p id="estado">Esperando señal GPS...</p>
+      </div>
     </div>
 
   </div>
