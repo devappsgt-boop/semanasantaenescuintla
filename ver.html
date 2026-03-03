@@ -6,123 +6,90 @@
 <title>Ver recorrido</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-
 <style>
-html, body { margin: 0; padding: 0; }
-#map { height: 100vh; width: 100%; }
-
-.panel-info {
-  position: absolute;
-  bottom: 15px;
-  left: 15px;
-  background: white;
-  padding: 12px 16px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-  font-family: Arial;
-  z-index: 1000;
-  font-size: 14px;
+html,body{margin:0;padding:0;}
+#map{height:100vh;width:100%;}
+.panel-info{
+position:absolute;bottom:15px;left:15px;background:white;
+padding:12px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.3);
+font-family:Arial;z-index:1000;font-size:14px;
 }
 </style>
 </head>
 
 <body>
-
 <div id="map"></div>
 
 <div class="panel-info">
-<strong id="nombreProcesion">Cargando...</strong><br>
+<strong id="nombreProcesion">Esperando procesión...</strong><br>
 Estado: <span id="estadoTexto">--</span><br>
-Avance: <strong><span id="avance">0%</span></strong>
+Última actualización: <span id="ultima"></span>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbwlnX9zhSakddrndVBurrMOQkbGFvQyDHHslDP6ZSn3kSI-YA7mEnfvbNTL_JsMPBtaYw/exec";
 
-let map = L.map('map').setView([14.3009, -90.7875], 16);
+const API_URL="PEGA_AQUI_TU_URL";
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap contributors'
+let map=L.map('map').setView([14.3009,-90.7875],16);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  attribution:'© OpenStreetMap'
 }).addTo(map);
 
-let rutaActual = null;
-let markerTiempoReal = null;
-let lineaIda = null;
-let lineaRegreso = null;
+let lineaIda=null;
+let lineaRegreso=null;
+let marker=null;
+let procesionCargada=null;
 
-async function cargarRuta(nombreProcesion) {
+async function cargarRuta(id){
+  if(!id) return;
 
-  if (!nombreProcesion) return;
+  const res=await fetch(`rutas/${id}.json`);
+  const data=await res.json();
 
-  const response = await fetch(`rutas/${nombreProcesion}.json`);
-  const data = await response.json();
+  document.getElementById("nombreProcesion").innerText=data.nombre;
 
-  document.getElementById("nombreProcesion").innerText = data.nombre;
+  if(lineaIda) map.removeLayer(lineaIda);
+  if(lineaRegreso) map.removeLayer(lineaRegreso);
+  if(marker) map.removeLayer(marker);
 
-  if (lineaIda) map.removeLayer(lineaIda);
-  if (lineaRegreso) map.removeLayer(lineaRegreso);
-  if (markerTiempoReal) map.removeLayer(markerTiempoReal);
+  lineaIda=L.polyline(data.ida,{color:"blue"}).addTo(map);
+  lineaRegreso=L.polyline(data.regreso,{color:"red",dashArray:"6,6"}).addTo(map);
 
-  lineaIda = L.polyline(data.ida, { color: "blue", weight: 3 }).addTo(map);
-  lineaRegreso = L.polyline(data.regreso, { color: "red", weight: 3, dashArray: "8,6" }).addTo(map);
+  map.fitBounds(L.featureGroup([lineaIda,lineaRegreso]).getBounds());
 
-  rutaActual = data.ida.concat(data.regreso);
+  marker=L.marker(data.ida[0]).addTo(map);
 
-  map.fitBounds(L.featureGroup([lineaIda, lineaRegreso]).getBounds());
-
-  markerTiempoReal = L.marker(rutaActual[0]).addTo(map);
+  procesionCargada=id;
 }
 
-function distancia(a, b) {
-  const dx = a[0] - b[0];
-  const dy = a[1] - b[1];
-  return Math.sqrt(dx*dx + dy*dy);
-}
+async function actualizar(){
+  const res=await fetch(API_URL);
+  const data=await res.json();
 
-function calcularAvance(pos) {
-  let total = 0;
-  let recorrido = 0;
-
-  for (let i = 0; i < rutaActual.length - 1; i++) {
-    const seg = distancia(rutaActual[i], rutaActual[i+1]);
-    total += seg;
-
-    if (distancia(pos, rutaActual[i+1]) < 0.0005) {
-      recorrido += seg;
-    }
-  }
-
-  return Math.min(100, Math.round((recorrido / total) * 100));
-}
-
-async function actualizar() {
-  const res = await fetch(API_URL);
-  const data = await res.json();
-
-  if (!data.procesionActiva) {
-    document.getElementById("estadoTexto").innerText = "Sin procesión";
+  if(!data.procesionActiva){
+    document.getElementById("estadoTexto").innerText="Sin procesión activa";
     return;
   }
 
-  if (!rutaActual || document.getElementById("nombreProcesion").innerText === "Cargando...") {
+  if(data.procesionActiva!==procesionCargada){
     await cargarRuta(data.procesionActiva);
   }
 
-  document.getElementById("estadoTexto").innerText = data.estado;
+  document.getElementById("estadoTexto").innerText=data.estado;
+  document.getElementById("ultima").innerText=
+    data.ultimaActualizacion?
+    new Date(data.ultimaActualizacion).toLocaleTimeString():"--";
 
-  if (data.estado === "en_recorrido" && data.lat && data.lng) {
-    const pos = [data.lat, data.lng];
-    markerTiempoReal.setLatLng(pos);
-    const avance = calcularAvance(pos);
-    document.getElementById("avance").innerText = avance + "%";
+  if(data.estado==="en_recorrido" && data.lat && data.lng){
+    marker.setLatLng([data.lat,data.lng]);
   }
 }
 
-setInterval(actualizar, 5000);
+setInterval(actualizar,5000);
 actualizar();
-</script>
 
+</script>
 </body>
 </html>
