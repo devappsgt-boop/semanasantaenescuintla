@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -8,211 +8,142 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-body {
-  background-color: #2e0f3a;
-  color: white;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-}
-
-.card-panel {
-  background: #3d1450;
-  border-radius: 18px;
-  padding: 30px;
-  box-shadow: 0 0 25px rgba(0,0,0,0.4);
-}
-
-.btn-activar { background-color: #6f42c1; color: white; }
-.btn-comenzar { background-color: #198754; color: white; }
-.btn-finalizar { background-color: #dc3545; color: white; }
-
-.estado-box {
-  background: #2a0d38;
-  padding: 15px;
-  border-radius: 12px;
-  margin-top: 15px;
-  font-size: 0.9rem;
-}
+body { background-color:#2e0f3a;color:white;min-height:100vh;display:flex;align-items:center;}
+.card-panel {background:#3d1450;border-radius:18px;padding:30px;box-shadow:0 0 25px rgba(0,0,0,0.4);}
+.estado-box {background:#2a0d38;padding:15px;border-radius:12px;margin-top:15px;font-size:0.9rem;}
 </style>
 </head>
 
 <body>
-
 <div class="container">
-  <div class="card-panel mx-auto" style="max-width: 500px;">
+<div class="card-panel mx-auto" style="max-width:500px;">
 
-    <!-- LOGIN -->
-    <div id="loginBox">
-      <h3 class="text-center mb-4">🔐 Acceso de Encargado</h3>
+<div id="loginBox">
+<h3 class="text-center mb-4">🔐 Acceso</h3>
+<input type="password" id="password" class="form-control mb-3" placeholder="Contraseña">
+<button class="btn btn-warning w-100" onclick="login()">Ingresar</button>
+<p id="error" class="text-danger text-center mt-2"></p>
+</div>
 
-      <input type="text" id="usuario" class="form-control mb-2" placeholder="Usuario">
-      <input type="password" id="password" class="form-control mb-3" placeholder="Contraseña">
+<div id="panel" style="display:none;">
+<h4 class="text-center mb-3">Panel Procesional</h4>
 
-      <button class="btn btn-warning w-100" onclick="login()">Ingresar</button>
-      <p id="error" class="text-danger text-center mt-2"></p>
-    </div>
+<select id="procesionSelect" class="form-select mb-3"></select>
 
-    <!-- PANEL -->
-    <div id="panel" style="display:none;">
+<div class="d-grid gap-2">
+<button class="btn btn-primary" onclick="activarProcesion()">Activar</button>
+<button class="btn btn-success" onclick="comenzarRecorrido()">Comenzar</button>
+<button class="btn btn-danger" onclick="finalizarRecorrido()">Finalizar</button>
+</div>
 
-      <h4 class="text-center mb-3">Panel de Control Procesional</h4>
+<div class="estado-box text-center">
+<strong>Estado:</strong>
+<div id="estadoActual">Cargando...</div>
+<div id="gpsInfo"></div>
+</div>
 
-      <label class="mb-2">Seleccionar procesión</label>
-      <select id="procesionSelect" class="form-select mb-3">
-        <option>Cargando procesiones...</option>
-      </select>
+<button class="btn btn-secondary w-100 mt-3" onclick="cerrarSesion()">Cerrar</button>
 
-      <div class="d-grid gap-2">
-        <button class="btn btn-activar" onclick="activarProcesion()">
-          🟣 Activar procesión
-        </button>
-
-        <button class="btn btn-comenzar" onclick="comenzarRecorrido()">
-          🟢 Comenzar recorrido
-        </button>
-
-        <button class="btn btn-finalizar" onclick="finalizarRecorrido()">
-          🔴 Finalizar recorrido
-        </button>
-      </div>
-
-      <div class="estado-box text-center mt-3">
-        <strong>Estado actual:</strong>
-        <div id="estadoActual">Cargando...</div>
-        <div id="gpsInfo" class="mt-2"></div>
-      </div>
-
-      <button class="btn btn-secondary w-100 mt-3" onclick="cerrarSesion()">
-        Cerrar sesión
-      </button>
-
-    </div>
-
-  </div>
+</div>
+</div>
 </div>
 
 <script>
-const API_URL = "PEGA_AQUI_TU_URL_DEL_SCRIPT";
-
-const USER = "admin";
+const API_URL = "https://script.google.com/macros/s/AKfycbwtFW7x0hvLcFL-kyGf4n3KVCtRQxqrFAVB7cl_r2Dai8ky_zTtOW3vbrsPDsevRK9wpg/exec";
+const TOKEN = "TOKEN_SECRETO_2026";
 const PASS = "procesion2026";
 
+let watchId = null;
 let gpsActivo = false;
 
-// ================= LOGIN =================
-function login() {
-  const u = document.getElementById("usuario").value;
+function login(){
   const p = document.getElementById("password").value;
-
-  if (u === USER && p === PASS) {
-    document.getElementById("loginBox").style.display = "none";
-    document.getElementById("panel").style.display = "block";
+  if(p === PASS){
+    document.getElementById("loginBox").style.display="none";
+    document.getElementById("panel").style.display="block";
     cargarProcesiones();
     cargarEstado();
   } else {
-    document.getElementById("error").innerText = "Credenciales incorrectas";
+    document.getElementById("error").innerText="Contraseña incorrecta";
   }
 }
 
-function cerrarSesion() {
-  gpsActivo = false;
-  document.getElementById("panel").style.display = "none";
-  document.getElementById("loginBox").style.display = "block";
+function cerrarSesion(){
+  detenerGPS();
+  location.reload();
 }
 
-// ================= CARGAR PROCESIONES =================
-async function cargarProcesiones() {
-  try {
-    const res = await fetch("./rutas/lista.json");
-    const lista = await res.json();
-
-    const select = document.getElementById("procesionSelect");
-    select.innerHTML = "";
-
-    lista.forEach(p => {
-      const option = document.createElement("option");
-      option.value = p.id;
-      option.textContent = p.nombre;
-      select.appendChild(option);
-    });
-
-  } catch (error) {
-    console.error("Error cargando lista:", error);
-  }
-}
-
-// ================= CONTROL =================
-async function activarProcesion() {
-  const procesion = document.getElementById("procesionSelect").value;
-
-  await fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({
-      accion: "activar",
-      procesion: procesion
-    })
+async function cargarProcesiones(){
+  const res = await fetch("./rutas/lista.json");
+  const lista = await res.json();
+  const select = document.getElementById("procesionSelect");
+  select.innerHTML="";
+  lista.forEach(p=>{
+    const opt=document.createElement("option");
+    opt.value=p.id;
+    opt.textContent=p.nombre;
+    select.appendChild(opt);
   });
+}
 
+async function enviarAccion(data){
+  await fetch(API_URL,{
+    method:"POST",
+    body:JSON.stringify({...data,token:TOKEN})
+  });
+}
+
+async function activarProcesion(){
+  const procesion=document.getElementById("procesionSelect").value;
+  await enviarAccion({accion:"activar",procesion});
   cargarEstado();
 }
 
-async function comenzarRecorrido() {
-  await fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({ accion: "comenzar" })
-  });
-
-  gpsActivo = true;
+async function comenzarRecorrido(){
+  await enviarAccion({accion:"comenzar"});
+  gpsActivo=true;
   iniciarGPS();
   cargarEstado();
 }
 
-async function finalizarRecorrido() {
-  await fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({ accion: "finalizar" })
-  });
-
-  gpsActivo = false;
+async function finalizarRecorrido(){
+  await enviarAccion({accion:"finalizar"});
+  detenerGPS();
   cargarEstado();
 }
 
-// ================= ESTADO =================
-async function cargarEstado() {
-  const res = await fetch(API_URL);
-  const data = await res.json();
-
-  document.getElementById("estadoActual").innerText =
-    `Procesión: ${data.procesionActiva || "Ninguna"} | Estado: ${data.estado}`;
+async function cargarEstado(){
+  const res=await fetch(API_URL);
+  const data=await res.json();
+  document.getElementById("estadoActual").innerText=
+    `Procesión: ${data.procesionActiva||"Ninguna"} | ${data.estado}`;
 }
 
-// ================= GPS =================
-function iniciarGPS() {
-  if (navigator.geolocation) {
-    navigator.geolocation.watchPosition(enviarUbicacion);
+function iniciarGPS(){
+  if(navigator.geolocation){
+    watchId=navigator.geolocation.watchPosition(enviarUbicacion);
   }
 }
 
-async function enviarUbicacion(pos) {
-  if (!gpsActivo) return;
+function detenerGPS(){
+  if(watchId){
+    navigator.geolocation.clearWatch(watchId);
+    watchId=null;
+    gpsActivo=false;
+  }
+}
 
-  const lat = pos.coords.latitude;
-  const lng = pos.coords.longitude;
+async function enviarUbicacion(pos){
+  if(!gpsActivo) return;
 
-  document.getElementById("gpsInfo").innerText =
+  const lat=pos.coords.latitude;
+  const lng=pos.coords.longitude;
+
+  document.getElementById("gpsInfo").innerText=
     `Lat: ${lat.toFixed(5)} | Lng: ${lng.toFixed(5)}`;
 
-  await fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({
-      accion: "ubicacion",
-      lat: lat,
-      lng: lng
-    })
-  });
+  await enviarAccion({accion:"ubicacion",lat,lng});
 }
 </script>
-
 </body>
 </html>
